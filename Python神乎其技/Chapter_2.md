@@ -296,4 +296,65 @@ class MangledGlobal:
 # 因為名稱修飾的作用，在test()方法裡便能夠以__mangled之名來存取全域變數_MangledGlobal__mangled
 ```
 
-讚讚讚
+## 2-5 字串格式化之驚人事實
+**string formatting**
+1. 「舊式」字串格式化：像c語言的printf
+```python
+>>> name = 'Howard'
+>>> errno = 50159747053
+>>> 'Hello, %s' % name
+'Hello, Howard'
+# 把整數值轉為字串，並用十六進位的數字表示
+>>> '%x' % errno
+'badc0ffed'
+```
+2. 「新式」字串格式化：使用字串物件的format()函式
+```python
+>>> 'Hello, {}'.format(name)
+'Hello, Howard'
+
+# 把整數值格式化成十六進位字串的語法，新式需要傳入format spec - 在變數之後加上 :x
+>>> 'Hey, {name}, there is a 0x{errno:x} error!'.format(name=name, errno=errno)
+'Hey, Howard, there is a 0xbadc0ffed error!'
+```
+3. 字串插值(Python 3.6+)：叫做格式字串字面值(Formatted String Literal)，可以把python運算式嵌入在字串常數裡面
+```python
+>>> f'Hello, {name}!'
+'Hello, Howard!'
+
+>>> f'Five plus ten is {a+b} and not {2 * (a+b)}.'
+'Five plus ten is 15 and not 30.
+
+>>> f"Hey {name}, there's a {errno:#x} error!"
+"Hey Howard, there's a 0xbadc0ffed error!"
+```
+4. 樣板字串(Template String)
+```python
+>>> from string import Template
+>>> t = Template('Hey, $name!')
+>>> t.substitute(name=name)
+'Hey, Howard!'
+```
+注意：樣板字串不允許格式指定子(%s, %x這些)，若要使用之前的範例，需要自己把錯誤號碼轉為十六進位字串
+```python
+>>> template_string = 'Hey, $name, there is a $error error!'
+>>> Template(template_string).substitute(name=name, error=hex(errno))
+'Hey, Howard, there is a 0xbadc0ffed error!'
+```
+何時會使用樣板字串？
+當你需要處理使用者產生的格式字串的時候，因為可能透過使用者的格式字串來存取程式中任一變數
+```python
+>>> SECRET = 'this is a secret'
+>>> class Error:
+...     def __init__(self):
+...         pass
+...
+>>> user_input = '{error.__init__.__globals__[SECRET]}'
+>>> user_input.format(error=err)
+'this is a secret'
+
+# 若使用樣板字串
+>>> user_input = '${error.__init__.__globals__[SECRET]}'
+>>> Template(user_input).substitute(error=err)
+ValueError
+```
