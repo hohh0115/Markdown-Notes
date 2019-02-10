@@ -1,1 +1,2 @@
 # Markdown-Notes
+Evernote沒有支援Markdown，又不想移動到其他筆記軟體，因此一些用Markdown格式的筆記備一份在這
