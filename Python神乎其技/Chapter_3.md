@@ -199,3 +199,48 @@ def make_adder(n):
   - 函式可被定義在另一支函式裡頭，並且，子函式能捕捉父函式的區域狀態(語彙閉包)
 
 #### Python裝飾器基礎知識
+- 裝飾器的作用是「裝飾」或「包裹」另一支函式，讓你能在被包裹的函式執行之前與之後，執行你裝飾器的程式碼
+- 用概略的方式形容，裝飾器是個callable，以callable作為輸入、回傳值也是callable
+```python
+# 最簡單的裝飾器
+def null_decorator(func):
+    return func
+
+def greet():
+    return 'Hello!'
+
+greet = null_decorator(greet)
+
+>>> greet()
+'Hello!'
+
+# 也可以使用@語法這個語法糖來裝飾函式
+@null_decorator
+def greet():
+    return 'Hello!'
+
+>>> greet()
+'Hello!'
+```
+請注意，使用@語法的話，會在定義期間就立即裝飾函式，如此一來，若不走不正常管道，很難再存取得到被裝飾的原函式，因此有人會選擇手動裝飾函式(上面的第一種寫法)，便可保留彈性，還能呼叫裝飾前的原始函式
+
+#### 裝飾器能修改行為
+```python
+def uppercase(func):
+    def wrapper():
+        original_result = func()
+        modified_result = origin_result.upper()
+        return modified_result
+
+    return wrapper
+
+@uppercase
+def greet():
+    return 'Hello!'
+
+>>> greet()
+'HELLO!'
+```
+這支uppercase裝飾器在裏頭定義一支新函式(閉包)，使用它來包裹輸入函式，藉以在呼叫期間修改其行為。
+裝飾器透過一層包裹閉包，修改可被呼叫者的行為，因此你不必永久地變更原本的可被呼叫者，它的行為只有在裝飾之後才會變更
+經由上述機制，你便可以把能夠重複使用的建構區塊添加到既有的函式與類別。
