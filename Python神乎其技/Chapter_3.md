@@ -244,3 +244,36 @@ def greet():
 這支uppercase裝飾器在裏頭定義一支新函式(閉包)，使用它來包裹輸入函式，藉以在呼叫期間修改其行為。
 裝飾器透過一層包裹閉包，修改可被呼叫者的行為，因此你不必永久地變更原本的可被呼叫者，它的行為只有在裝飾之後才會變更
 經由上述機制，你便可以把能夠重複使用的建構區塊添加到既有的函式與類別。
+
+
+#### 套用多個裝飾器到函式身上
+- 這麼做會累積所有裝飾器的效果
+```python
+def strong(func):
+    def wrapper():
+        return '<strong>' + func() + '</strong>'
+    return wrapper
+
+def emphasis(func):
+    def wrapper():
+        return '<em>' + func() + '</em>'
+    return wrapper
+
+@strong
+@emphasis
+def greet():
+    return 'Hello!'
+
+>>> greet()
+'<strong><em>Hello!</em></strong>'
+# decorated_greet = strong(emphasis(greet))
+```
+清楚地秀出裝飾器的套用順序：__「從下到上」__。
+首先函式被@emphasis加以裝飾，其結果(已被裝飾過一回)函式，又再由@strong進行裝飾。
+我習慣稱呼為裝飾器堆疊(decorator stacking)，建立堆疊時會從底部開始，然後在頂部加入新東西，逐漸往上成長。
+裝飾器的層級若太深，最終將會影響效能表現
+
+#### 裝飾有接受參數的函式
+以上的範例都只裝飾簡單的、沒有參數的greet函式，因此你看見的裝飾器不需要處理參數、轉傳給輸入函式。
+若你把上述裝飾器套用到接受參數的函式，將無法正確運作，那麼，我們如何裝飾會接受參數個數不定的函式呢?
+此時正該由Python的 *args 與 **kwargs 功能接手
