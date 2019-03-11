@@ -277,3 +277,189 @@ def greet():
 以上的範例都只裝飾簡單的、沒有參數的greet函式，因此你看見的裝飾器不需要處理參數、轉傳給輸入函式。
 若你把上述裝飾器套用到接受參數的函式，將無法正確運作，那麼，我們如何裝飾會接受參數個數不定的函式呢?
 此時正該由Python的 *args 與 **kwargs 功能接手
+```python
+# proxy裝飾器
+def proxy(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+```
+這個裝飾器有兩個值得注意的點:
+- 在wrapper閉包定義裡使用*與**運算子，收集所有位置型與關鍵字參數，儲存在變數裡(args與kwargs)
+- 然後，wrapper閉包利用*與**「拆箱運算子」，把收集後的參數、轉傳給原始的輸入函式
+
+底下的trace裝飾器，會在執行期間紀錄韓式的參數與結果，若有需要的話，可成為絕佳的除厝輔助工具
+```python
+def trace(func):
+    def wrapper(*args, **kwargs):
+        print(
+            f'TRACE: calling {func.__name__}() '
+            f'with {args}, {kwargs}'
+        )
+        original_result = func(*args, **kwargs)
+        print(
+            f'TRACE: {func.__name__}() '
+            f'returned {original_result!r}'
+        )
+        retrun original_result
+    return wrapper
+
+@trace
+def say(name, line):
+    return f'{name}: {line}'
+```
+
+#### 如何撰寫「可除錯」的裝飾器
+舉例而言，被裝飾的原始函式的名稱、文件字串(docstring)、參數清單，都會被包裹閉包藏起來
+```python
+def greet():
+    """Return a friendly greeting."""
+    return 'Hello!'
+decorated_greet = upppercase(greet)
+
+>>> greet.__name__
+'greet'
+>>> greet.__doc__
+'Return a friendly greeting.'
+
+>>> decorated_greet.__name__
+'wrapper'
+>>> decorated_greet.__doc__
+'None'
+```
+有個解決辦法：Python標準程式庫的functools.wraps裝飾器
+在裝飾器上使用functools.wraps裝飾器，便可把遺失的後設資料，從未裝飾的函式、複製到裝飾器閉包
+```python
+import functools
+
+def uppercase(func):
+    @functools.wraps(func)
+    def wrapper():
+        return func().upper()
+    return wrapper
+```
+
+## 3-4 *args與**kwargs
+```python
+# *args與**kwargs允許函式接受選用性參數
+def foo(required, *args, **kwargs):
+    print(required)
+    if args:
+        print(args)
+    if kwargs:
+        print(kwargs)
+```
+- 上述函式要求至少要有一個叫做required的參數，但也能接受額外的位置型與關鍵字參數
+- 呼叫該函式時若傳入更多的參數，args將會收集額外的位置型參數，成為tuple，因為其參數名稱以*開頭
+- kwargs將會收集額外的關鍵字參數，成為dict，因為其參數名稱以**開頭
+- 如果沒有傳入額外的參數，那麼args與kwargs可以是空的
+- 把參數叫做args與kwargs只是命名慣例，實際上僅要求*與**而已
+
+> 總結來說，*與**可放在兩種地方：
+> - 用在formal parameter，定義函式參數的時候
+>   - 收集額外的位置型參數以及額外的關鍵字參數
+>   - 轉傳選用性或關鍵字參數
+> - 用在actual argument，傳給函式的時候
+>   - 函式參數拆箱
+
+#### 轉傳選用性或關鍵字參數
+做法是呼叫另一個函式時，使用拆開參數的運算子*與**，便可轉傳參數，同時，也讓你有機會先修改參數然後再傳入其他函式
+```python
+def foo(x, *args, **kwargs):
+    kwargs['name'] = 'Alice'
+    new_args = args + ('extra', )
+    bar(x, *new_args, **kwargs)
+```
+1. 撰寫子類別與包裹函式時，上述技巧將派上用場，
+
+例如，你可以擴充父類別的行為，但又不必在子類別裡，完全照抄父類別建構式的全部參數
+```python
+class Car:
+    def __init__(self, color, mileage):
+        self.color = color
+        self.mileage = mileage
+
+class AlwaysBlueCar(Car):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        sefl.color = 'blue'
+
+>>> AlwaysBlueCar('green', 48392).color
+'blue'
+```
+AlwaysBlueCar建構式會把所有參數通通傳入父類別，然後改寫一個內部屬性項，意思是說，未來若變更父類別建構式，AlwaysBlueCar仍可照預期正常運作的機率，將會很高。
+<br>
+__但有個缺點__，AlwaysBlueCar建構式的參數清單變得沒有什麼用，我們不知道它預期收到那些參數，除非往上層查看父類別的定義。
+
+__一般來說，我們在自己的類別繼承架構中，並不會使用此技巧__，
+較可能採用的情境，是當你想要修改或覆蓋某些外來的類別行為，而且你又沒辦法控制該類別的時候。<br>
+但這樣做總是有危險，務必小心評估。
+
+2. 另一個可能採用此技巧的情境是在撰寫包裹函式時，
+
+例如裝飾器通常也想要接受任意種類與個數的參數時，然後轉傳給被包裹的函式。
+```python
+def trace(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        print(f, args, kwargs)
+        result = f(*args, **kwargs)
+        print(result)
+    return decorated_function
+
+@trace
+def greet(greeting, name):
+    return '{}, {}!'.format(greeting, name)
+
+>>> greet('Hello', 'Bob')
+<function greet at xxx> ('Hello', 'Bob') {}
+'Hello, Bob!'
+```
+
+## 3-5 函式參數拆箱
+以*與**運算子來「拆箱」函式的序列與字典參數。
+```python
+def print_vector(x, y, z):
+    print('<%s, %s, %s>' % (x, y, z))
+
+>>> print_vector(0, 1, 0)
+<0, 1, 0>
+>>> tuple_vec = (0, 1, 0)
+>>> list_vec = [0, 1, 0]
+>>> print_vector(
+        tuple_vec[0],
+        tuple_vec[1],
+        tuple_vec[2]
+    )
+<0, 1, 0>
+```
+一般函式呼叫，竟然要分開傳入個個參數，令人覺人繁瑣！
+
+如果能夠「爆開」向量物件、分解成3個元素，然後直接傳入print_vector函式，不是更棒嗎？
+
+那就已*運算子進行函式參數拆箱。
+```python
+>>> print_vector(*tuple_vec)
+>>> print_vector(*list_vec)
+```
+__呼叫函式時，在可迭代者的前頭放上*，將會「解開」可迭代者物件，把其中的元素分別做成個別的位置型參數，傳入函式。__
+<br>
+這項技巧可用於任何種類的可迭代者，包括產生器運算式(generator expression)，對產生器套用*的話，會從產生器拿出所有的元素，傳入函式。
+```python
+>>> genexpr = (x * x for x in range(3))
+>>> print_vector(genexpr)
+```
+除了以*運算子來拆解序列型物件，如tuple, list和產生器，拆解成位置型參數；__另外還有**運算子，可拆開字典，拆解成關鍵字參數。__
+```python
+>>> dict_vec = {'x': 0, 'y': 1, 'z': 0}
+>>> print_vector(dict_vec)
+```
+__若你錯以一個星號*來拆箱字典，那麼結果會是以亂數順序把鍵傳入函式。__
+```python
+>>> print_vector(*dict_vec)
+<y, x, z>
+```
+
+#### 3-6
+任何函式的結尾，Python都會在暗地裡偷偷加上return None語句，因此，若你沒有明確指定回傳值，那麼預設回傳None。
+意思是說，你可以把return None語句置換成return，甚至根本不寫，得到的結果仍相同。
