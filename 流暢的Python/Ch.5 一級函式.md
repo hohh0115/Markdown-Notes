@@ -63,3 +63,25 @@ reduce(lambda a, b: a*b, range(1, n+1))
 - operator還可以取代一些功能簡單的lambda，itemgetter與attrgetter建構了自訂函式來做這些事:
   - 從序列中挑取項目: itemgetter
   - 從物件中讀取屬性的函式: attrgetter
+  - p.161
+
+- itemgetter
+  - itemgetter(1)和lambda fields: fields[1]做的事一樣，都會建立一個函式，當你給它一個集合，它會回傳index=1的項目
+  - itemgetter用於取對象的哪些位置的數據，參數及代表index
+  - itemgetter(1, 3, 5)('ABCDEFG) => ('B', 'D', 'F')
+- attrgetter
+  - 建立函式，以名稱來擷取物件屬性
+  - 如果有任何含有 . 的引數名稱，attrgetter會瀏覽嵌套起來的物件，來取出屬性
+- what? dir()中，以i及其他運算子的名稱開頭的名稱族群(如iadd, iand等)都會對應到擴增賦值運算子(如+=, &=等)，如果第一個引數是可變的，會就地更改它；如果不可變，該函式的動作就會像前面沒有i的函式，回傳運算的結果(p.163)
+- operator.methodcaller:
+  - 會動態建立一個函式，它建立的函式會以名稱來呼叫以引數傳入的物件的方法
+```python
+s = 'abc'
+from operator import methodcaller
+upcase = methodcaller('upper')
+upcase(s)  # 'ABC'
+# or use str.upper as func
+str.upper(s)
+# or...
+s.upper()
+```
