@@ -59,7 +59,7 @@ reduce(mul, range(1, n+1))
 # normal
 reduce(lambda a, b: a*b, range(1, n+1))
 ```
-
+[标题1](#标题1) 
 - operator還可以取代一些功能簡單的lambda，itemgetter與attrgetter建構了自訂函式來做這些事:
   - 從序列中挑取項目: itemgetter
   - 從物件中讀取屬性的函式: attrgetter
@@ -85,3 +85,7 @@ str.upper(s)
 # or...
 s.upper()
 ```
+
+
+
+# 标题1
